@@ -25,7 +25,7 @@ function Home(props) {
 
     const [users, setUsers] = useState("")
     const token = localStorage.getItem('token');
-    
+
     // fetch users
     const fetchUsers = () => {
         fetch("/api/users", {
@@ -124,7 +124,7 @@ function Home(props) {
                 }
             </div>
 
-
+{/* ModalNot Working  */}
             <div className="modal" id="myModal">
                 <div className="modal-dialog" style={{ width: "700px" }}>
                     <div className="modal-content">
