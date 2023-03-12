@@ -1,7 +1,6 @@
 const userModel = require('../models/userModel')
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-var firebaseAdmin = require("firebase-admin");
+var firebaseAdmin = require('../firebase/firebase');
 const { isValidPassword, isValidEmail, isValidName, isValidAddress, isValidNumber } = require('../validations/validation');
 
 
@@ -10,7 +9,7 @@ module.exports.register = async (req, res) => {
 
     try {
 
-        const { email, password, name, phone, address } = req.body;
+        const { email, password, name, phone, address, displayName } = req.body;
 
         // check for existing email
         const existingEmail = await userModel.findOne({ email: email })
@@ -33,6 +32,12 @@ module.exports.register = async (req, res) => {
             return res.status(400).send({ status: false, message: 'Name is invalid!!' })
         }
 
+        // check for existing Phone
+        const existingPhone = await userModel.findOne({ phone: phone })
+        if (existingPhone) {
+            return res.status(409).send({ status: false, message: 'Phone Number Already exists.. Try Another!!' })
+        }
+
         // Validate Phone
         if (!isValidNumber(phone)) {
             return res.status(400).send({ status: false, message: 'Phone Number is invalid!!' })
@@ -45,26 +50,18 @@ module.exports.register = async (req, res) => {
         }
 
 
-        // Check if the default app is already initialized
-        if (!firebaseAdmin.apps.length) {
-            // Initialize Firebase Admin SDK with service account
-            firebaseAdmin.initializeApp({
-                credential: firebaseAdmin.credential.cert('./new-project-24158-firebase-adminsdk-92uxs-feeb2faed9.json'),
-            });
-        }
 
         // Create a new user in Firebase Authentication
         const { uid } = await firebaseAdmin.auth().createUser({
             email,
             password,
+            displayName: name,
         })
 
-        // hash Pass
-        const hashedPassword = await bcrypt.hash(password, 10);
 
         const data = {
             email,
-            password: hashedPassword,
+            password,
             name,
             phone,
             address,
@@ -72,7 +69,7 @@ module.exports.register = async (req, res) => {
         }
 
         const user = await userModel.create(data);
-        return res.status(201).send({ status: true, message: 'User registered successfully.', data: data });
+        return res.status(201).send({ status: true, message: 'User registered successfully.', data: user });
 
     } catch (error) {
         console.error(error);
@@ -89,49 +86,53 @@ module.exports.register = async (req, res) => {
 }
 
 //------------------ USER LOGIN   
-module.exports.loginUser = async (req, res) => {
+module.exports.loginUser = async (req, resp) => {
+
     try {
 
         // Extract data from RequestBody
         let data = req.body
 
         // Extract Email And Password
-        const { email, password } = data
+        const { values, res } = data
+        const { email, pass } = values
 
         // Validate Email
         if (!isValidEmail(email)) {
-            res.status(400).send({ status: false, message: 'Email is invalid' })
+            resp.status(400).send({ status: false, message: 'Email is invalid' })
             return
         }
 
         // Validate password
-        if (!isValidPassword(password)) {
-            res.status(400).send({ status: false, message: 'It is not valid password' })
+        if (!isValidPassword(pass)) {
+            resp.status(400).send({ status: false, message: 'It is not valid password' })
             return
         }
 
         // Check Email and password is Present in DB  
-        let user = await userModel.findOne({ email })
+        let user = await userModel.findOne({ email: email, password: pass })
 
-        if (!user || ! await bcrypt.compare(password, user.password)) {
-            return res.status(401).send({ status: false, msg: "Email or password does not match, Invalid login Credentials" })
+        if (!user) {
+            return resp.status(401).send({ status: false, msg: "Email or password does not match, Invalid login Credentials" })
         }
 
         // Generate Token 
         let token = jwt.sign(
             {
                 userId: user._id.toString(),
+                uid: res.user.uid,
                 iat: new Date().getTime() / 1000,
             },
             "$2b$10$Dx.w8Mt.uqF5y78DHE1Ya", { expiresIn: "1h" }
         )
 
         // send response to  user that Author is successfully logged in
-        res.status(201).send({ status: true, message: "User login successfull", data: { userId: user._id, token: token } })
+        resp.status(200).send({ status: true, message: "User login successfull", data: { userId: user._id, token: token } })
+
 
     }
     catch (error) {
-        res.status(500).send({ status: false, msg: error.message });
+        resp.status(500).send({ status: false, msg: error.message });
     }
 };
 
