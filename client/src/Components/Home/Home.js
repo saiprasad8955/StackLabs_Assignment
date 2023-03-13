@@ -3,24 +3,40 @@ import { Link } from "react-router-dom";
 import { auth, signOut } from "../../firebase";
 import Swal from 'sweetalert2';
 import '../Home/table.module.css'
+import '../Home/Home.module.css'
+
+
+
 function Home(props) {
-
-
     const [submitButtonDisabled, setSubmitButtonDisabled] = useState(false);
 
-    // localStorage.getItem('token');
     const signOutUser = () => {
-        signOut(auth).then(() => {
-            localStorage.removeItem('token');
-            // POP UP for Success
-            Swal.fire('User Logged Out Successfully..')
-        }).catch((error) => {
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Something went wrong!',
-            })
-        });
+        Swal.fire({
+            title: 'Are you sure you want to log out?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: "Yes, I'm Sure!"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                signOut(auth).then(() => {
+                    localStorage.removeItem('token');
+                    setUsers();
+                    // POP UP for Success
+                    Swal.fire('User Logged Out Successfully..')
+                }).catch((error) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'Something went wrong!',
+                    })
+                });
+            }
+        })
+
+
     }
 
     const [users, setUsers] = useState("")
@@ -28,6 +44,7 @@ function Home(props) {
 
     // fetch users
     const fetchUsers = () => {
+        setSubmitButtonDisabled(true);
         fetch("/api/users", {
             method: "GET",
             headers: {
@@ -35,21 +52,42 @@ function Home(props) {
                 'Authorization': `Bearer ${token}`
             },
         }).then(async (res) => {
-            setSubmitButtonDisabled(false);
+
             if (parseInt(res.status) === 400 || parseInt(res.status) === 409) {
                 Swal.fire({ icon: 'error', title: 'Oops...', text: 'Something went wrong!', })
             }
-            setSubmitButtonDisabled(false);
             let response = await res.json();
             setUsers(response.data)
             Swal.fire({
-                position: 'top-end', icon: 'success', title: 'Fetched data Successfully..', showConfirmButton: false, timer: 1500
+                position: 'top-end', icon: 'success', title: 'Fetched data Successfully..', showConfirmButton: false, timer: 500
             })
+            setSubmitButtonDisabled(false);
         })
             .catch((err) => {
                 setSubmitButtonDisabled(false);
-                Swal.fire({ icon: 'error', title: 'Oops...', text: 'Something went wrong!', })
+                Swal.fire({ icon: 'error', title: 'Oops...', text: `${err.msg}`, })
             });
+    }
+
+    const cancelUsers = () => {
+        setUsers();
+        let timerInterval
+        Swal.fire({
+            title: 'Closing the List!',
+            html: 'I will close in <b></b> milliseconds.',
+            timer: 300,
+            timerProgressBar: true,
+            didOpen: () => {
+                Swal.showLoading()
+                const b = Swal.getHtmlContainer().querySelector('b')
+                timerInterval = setInterval(() => {
+                    b.textContent = Swal.getTimerLeft()
+                }, 100)
+            },
+            willClose: () => {
+                clearInterval(timerInterval)
+            }
+        })
     }
 
     const [rs, setrs] = useState({
@@ -80,73 +118,110 @@ function Home(props) {
             }).catch(err => console.log(err))
     }
 
+    const showUsers = (user, index) => {
+        console.log("clicked");
+        console.log(index);
+
+
+    }
+
     return (
-        <div className="d-flex justify-content-center mt-5">
-            <div className="form-column">
-                <h1 className="mt-5">
-                    <Link to="/login">Login</Link>
-                </h1>
-                <h1 className="mt-5">
-                    <Link to="/signup">Signup</Link>
-                </h1>
-                <h2 className="mt-5">{props.name.displayName ? `Welcome - ${props.name.displayName}` : "Login please"}</h2>
-                {props.name.displayName ? <button className="btn btn-primary mr-2 mb-2" onClick={signOutUser}> Sign Out</button> : null}
-                {
-                    props.name.displayName
-                        ?
-                        <button className="btn btn-primary ml-2 mb-2" onClick={fetchUsers} disabled={submitButtonDisabled}> Fetch Users List</button>
-                        : null
-                }
 
-                {
-                    users ?
-                        (
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>View Details</th>
 
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {users.map(user => (
-                                        <tr key={user.email}>
-                                            <td>{user.name}</td>
-                                            <td>{user.email}</td>
-                                            <td><button className="btn btn-primary" onClick={(e) => showDetail(user._id)} data-bs-toggle="modal" data-bs-target="#myModal" >View Details</button></td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : null
-                }
-            </div>
-
-{/* ModalNot Working  */}
-            <div className="modal" id="myModal">
-                <div className="modal-dialog" style={{ width: "700px" }}>
+        <>
+            {/* MODAL FOR SHOWING USER DETAILS */}
+            {/* <!-- Button trigger modal --> */}
+            {/* <button type="button" className="btn btn-primary " data-bs-toggle="modal" data-bs-target="#exampleModal">
+                Launch demo modal
+            </button> */}
+            {/* <!-- Modal --> */}
+            {/* <div className="modal fade" id="exampleModal" tabIndex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div className="modal-dialog">
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title" id="exampleModalLabel">User Details</h5>
+                            <h5 className="modal-title" id="exampleModalLabel">Modal title</h5>
                             <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div className="modal-body">
-                            <p>Name : {rs.name}</p>
-                            <p>Email : {rs.email}</p>
-                            <p>Address : {rs.address}</p>
-                            <p>Phone : {rs.phone}</p>
+                            ...
                         </div>
-
                         <div className="modal-footer">
                             <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" className="btn btn-primary">Save changes</button>
                         </div>
-
                     </div>
                 </div>
+            </div> */}
+
+            {/* HOME PAGE */}
+            {
+                !props.name
+                    ?
+                    (
+                        <div className="d-flex justify-content-end">
+
+                            <h1 className="mt-5">
+                                <button type="button" className="btn btn-light "><Link to="/login" style={{ fontSize: "25px" }}>Login</Link></button>
+                                <button type="button" className="btn btn-light ml-4 mr-4"><Link to="/signup" style={{ fontSize: "25px" }} >Signup</Link></button>
+                            </h1>
+                        </div>
+                    )
+                    :
+                    null
+
+            }
+            <div className="d-flex justify-content-center mt-2">
+                <div className="form-column">
+                    {props.name.displayName ? <button className="btn btn-primary float-right" onClick={signOutUser}> Sign Out</button> : null}
+                    <h1 className="mt-5 display-2">{props.name.displayName ? `Welcome - ${props.name.displayName}` : <h1 style={{fontSize:"100px"}}>Login Please...</h1>}</h1>
+
+
+
+
+                    {
+                        props.name.displayName
+                            ?
+                            (
+                                <div className="float-right mb-2">
+                                    <button className="btn btn-primary" onClick={fetchUsers} disabled={submitButtonDisabled}>Fetch Users</button>
+                                    {
+                                        users ? <button className="btn btn-primary ml-2" onClick={cancelUsers} >Close List</button> : null
+                                    }
+
+                                </div>
+                            )
+                            : null
+                    }
+
+                    {
+                        users ?
+                            (
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Sr No</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>View Details</th>
+
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map((user, index) => (
+                                            <tr key={user.email}>
+                                                <td>{index + 1}</td>
+                                                <td>{user.name}</td>
+                                                <td>{user.email}</td>
+                                                <td><button className="btn btn-primary" onClick={(e) => showUsers(user)} >View Details</button></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : null
+                    }
+                </div>
             </div>
-        </div>
+        </>
     );
 }
 

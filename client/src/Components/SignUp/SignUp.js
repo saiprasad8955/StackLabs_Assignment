@@ -77,7 +77,7 @@ const SignUp = () => {
                     onChange={(event) =>
                         setValues((prev) => ({ ...prev, password: event.target.value }))
                     }
-                    placeholder="Enter Password Here.."
+                    placeholder="Enter Password Here.." 
                 />
 
                 <InputControl
