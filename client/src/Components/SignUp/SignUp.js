@@ -35,8 +35,8 @@ const SignUp = () => {
             },
             body: JSON.stringify(values),
         }).then((res) => {
-            setSubmitButtonDisabled(false);
 
+            setSubmitButtonDisabled(false);
             // POP UP for Success
             Swal.fire('User Created Successfully..')
             navigate("/");

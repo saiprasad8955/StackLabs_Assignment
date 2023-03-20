@@ -1,11 +1,11 @@
 const userModel = require('../models/userModel')
 const jwt = require('jsonwebtoken');
-var firebaseAdmin = require('../firebase/firebase');
+
 const { isValidPassword, isValidEmail, isValidName, isValidAddress, isValidNumber } = require('../validations/validation');
 
 
 //------------------ Register USER   
-module.exports.register = async (req, res) => {
+const register = async (req, res) => {
 
     try {
 
@@ -56,7 +56,7 @@ module.exports.register = async (req, res) => {
             email,
             password,
             displayName: name,
-        })
+        });
 
 
         const data = {
@@ -86,7 +86,7 @@ module.exports.register = async (req, res) => {
 }
 
 //------------------ USER LOGIN   
-module.exports.loginUser = async (req, resp) => {
+const loginUser = async (req, resp) => {
 
     try {
 
@@ -94,8 +94,7 @@ module.exports.loginUser = async (req, resp) => {
         let data = req.body
 
         // Extract Email And Password
-        const { values, res } = data
-        const { email, pass } = values
+        const { email, pass } = data.values;
 
         // Validate Email
         if (!isValidEmail(email)) {
@@ -116,18 +115,20 @@ module.exports.loginUser = async (req, resp) => {
             return resp.status(401).send({ status: false, msg: "Email or password does not match, Invalid login Credentials" })
         }
 
+        console.log(req.uid);
+
         // Generate Token 
-        let token = jwt.sign(
+        let jwtToken = jwt.sign(
             {
                 userId: user._id.toString(),
-                uid: res.user.uid,
+                firebaseUserUid: req.uid,
                 iat: new Date().getTime() / 1000,
             },
-            "$2b$10$Dx.w8Mt.uqF5y78DHE1Ya", { expiresIn: "1h" }
+            process.env.SECRET_KEY, { expiresIn: "1h" }
         )
 
         // send response to  user that Author is successfully logged in
-        resp.status(200).send({ status: true, message: "User login successfull", data: { userId: user._id, token: token } })
+        resp.status(200).send({ status: true, message: "User login successfull", data: { userId: user._id, token: jwtToken } })
 
 
     }
@@ -137,7 +138,7 @@ module.exports.loginUser = async (req, resp) => {
 };
 
 //------------------ All USER Details  
-module.exports.users = async (req, res) => {
+const users = async (req, res) => {
 
     try {
         const users = await userModel.find();
@@ -149,7 +150,7 @@ module.exports.users = async (req, res) => {
 }
 
 //------------------ Get USER Profile 
-module.exports.userProfile = async (req, res) => {
+const userProfile = async (req, res) => {
     try {
 
         // extract UserId
@@ -163,3 +164,11 @@ module.exports.userProfile = async (req, res) => {
         res.status(500).json({ message: 'Internal server error.' });
     }
 };
+
+
+module.exports = {
+    register,
+    loginUser,
+    users,
+    userProfile
+}

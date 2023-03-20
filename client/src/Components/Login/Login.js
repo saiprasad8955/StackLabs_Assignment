@@ -28,19 +28,20 @@ function Login() {
         setSubmitButtonDisabled(true);
         signInWithEmailAndPassword(auth, values.email, values.pass)
             .then((res) => {
+                // Add Token to body
+                values.token = res._tokenResponse.idToken
                 // call login api for log in the user
                 fetch("/api/login", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ values, res }),
+                    body: JSON.stringify({ values }),
                 }).then(async (res) => {
                     setSubmitButtonDisabled(false);
                     if (parseInt(res.status) === 400 || parseInt(res.status) === 409) {
                         Swal.fire({ icon: 'error', title: 'Oops...', text: 'Something went wrong!', })
                     }
-                    setSubmitButtonDisabled(false);
                     let response = await res.json()
                     localStorage.setItem('token', response.data.token);
                     Swal.fire({

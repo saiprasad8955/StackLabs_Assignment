@@ -1,8 +1,11 @@
 const jwt = require('jsonwebtoken')
 
+const admin = require('../firebase/firebase')
+
 // AUTHENTICATION
 const authentication = async (req, res, next) => {
     try {
+
 
         let token1 = req.headers['authorization'];
         if (!token1) {
@@ -11,7 +14,7 @@ const authentication = async (req, res, next) => {
             let token = token1.split(' ')[1];
 
             // Now Verify that token in Decoded Token
-            jwt.verify(token, "$2b$10$Dx.w8Mt.uqF5y78DHE1Ya", { ignoreExpiration: true }, function (err, decoded) {
+            jwt.verify(token, process.env.SECRET_KEY, { ignoreExpiration: true }, function (err, decoded) {
                 if (err) {
                     return res.status(400).send({ status: false, meessage: "token invalid" })
                 }
@@ -36,4 +39,28 @@ const authentication = async (req, res, next) => {
 };
 
 
-module.exports = { authentication }
+const firebaseAuth = async (req, res, next) => {
+
+    try {
+
+        const idToken = req.body.values.token
+        admin.auth()
+            .verifyIdToken(idToken)
+            .then((decodedToken) => {
+                const uid = decodedToken.uid;
+                req.uid = uid;
+                next();
+            })
+            .catch((error) => {
+                res.status(500).send({ status: true, msg: `Firebase Admin Authentication error: ${error}` })
+            });
+
+
+    } catch (err) {
+        // Handle other errors
+        console.error(err);
+        return res.status(500).json({ message: 'Internal server error in register User route..' });
+    }
+
+}
+module.exports = { authentication, firebaseAuth }

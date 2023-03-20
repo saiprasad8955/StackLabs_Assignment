@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { auth, signOut } from "../../firebase";
 import Swal from 'sweetalert2';
 import '../Home/table.module.css'
@@ -10,6 +10,8 @@ import '../Home/Home.module.css'
 function Home(props) {
     const [submitButtonDisabled, setSubmitButtonDisabled] = useState(false);
 
+    
+    let navigate = useNavigate();
     const signOutUser = () => {
         Swal.fire({
             title: 'Are you sure you want to log out?',
@@ -23,9 +25,10 @@ function Home(props) {
             if (result.isConfirmed) {
                 signOut(auth).then(() => {
                     localStorage.removeItem('token');
-                    setUsers();
+                    setUsers("");
                     // POP UP for Success
                     Swal.fire('User Logged Out Successfully..')
+                    navigate('/login')
                 }).catch((error) => {
                     Swal.fire({
                         icon: 'error',
@@ -121,8 +124,6 @@ function Home(props) {
     const showUsers = (user, index) => {
         console.log("clicked");
         console.log(index);
-
-
     }
 
     return (
@@ -160,10 +161,10 @@ function Home(props) {
                     (
                         <div className="d-flex justify-content-end">
 
-                            <h1 className="mt-5">
+                            <div className="mt-5">
                                 <button type="button" className="btn btn-light "><Link to="/login" style={{ fontSize: "25px" }}>Login</Link></button>
                                 <button type="button" className="btn btn-light ml-4 mr-4"><Link to="/signup" style={{ fontSize: "25px" }} >Signup</Link></button>
-                            </h1>
+                            </div>
                         </div>
                     )
                     :
@@ -173,7 +174,7 @@ function Home(props) {
             <div className="d-flex justify-content-center mt-2">
                 <div className="form-column">
                     {props.name.displayName ? <button className="btn btn-primary float-right" onClick={signOutUser}> Sign Out</button> : null}
-                    <h1 className="mt-5 display-2">{props.name.displayName ? `Welcome - ${props.name.displayName}` : <h1 style={{fontSize:"100px"}}>Login Please...</h1>}</h1>
+                    <h1 className="mt-5 display-2">{props.name.displayName ? `Welcome - ${props.name.displayName}` : (<p style={{ fontSize: "100px" }}>Login Please...</p>)}</h1>
 
 
 
